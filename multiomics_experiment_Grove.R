@@ -114,7 +114,7 @@ x2.featnorm.frobnorm <- x2.featnorm / norm(as.matrix(x2.featnorm), type="F")
 x3.featnorm.frobnorm <- x3.featnorm / norm(as.matrix(x3.featnorm), type="F")
 
 # Split the features of the CNV matrix into two non-negative features each
-#x3.featnorm.frobnorm.nonneg <- t(split_neg_columns(t(x3.featnorm.frobnorm)))
+x3.featnorm.frobnorm.nonneg <- t(split_neg_columns(t(x3.featnorm.frobnorm)))
 # using https://github.com/ryanckelly44/Computational-Genomics-with-R/blob/master/11-multiomics-analysis.Rmd
 #I figured out that the x3 feat needs to be sperated into |neg| and non neg values
 x3.featnorm.frobnorm.nonneg <- 
