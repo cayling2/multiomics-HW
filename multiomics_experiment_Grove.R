@@ -117,7 +117,7 @@ x3.featnorm.frobnorm <- x3.featnorm / norm(as.matrix(x3.featnorm), type="F")
 x3.featnorm.frobnorm.nonneg <- t(split_neg_columns(t(x3.featnorm.frobnorm)))
 # using https://github.com/ryanckelly44/Computational-Genomics-with-R/blob/master/11-multiomics-analysis.Rmd
 #I figured out that the x3 feat needs to be sperated into |neg| and non neg values
-x3.featnorm.frobnorm.nonneg <- 
+#x3.featnorm.frobnorm.nonneg <- 
 
 # run the nmf function from the NMF package
 #require(NMF)
