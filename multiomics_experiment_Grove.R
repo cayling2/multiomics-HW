@@ -118,9 +118,38 @@ x3.featnorm.frobnorm <- x3.featnorm / norm(as.matrix(x3.featnorm), type="F")
 #we need to split each feature into two new features, one positive and one negative. 
 #Implement the following function, and see that the included test does not fail: 
 #[Difficulty: Intermediate/Advanced]
-split_neg_columns <- function(x) {
-    #input x is a dataframe
-    #
+#gotten from HJ
+split_neg_columns <- function(x,
+                              pos_suffix = "_pos",
+                              neg_suffix = "_neg",
+                              drop_zero  = FALSE) {
+    x <- as.matrix(x)
+    if (!is.numeric(x)) stop("x must be numeric.")
+    if (anyNA(x)) warning("x contains NA values; they are propagated to the output.")
+    
+    # Column names (create defaults if missing)
+    cn <- colnames(x)
+    if (is.null(cn)) cn <- paste0("V", seq_len(ncol(x)))
+    
+    pos <- pmax(x, 0)
+    neg <- pmax(-x, 0)
+    
+    colnames(pos) <- paste0(cn, pos_suffix)
+    colnames(neg) <- paste0(cn, neg_suffix)
+    
+    out <- cbind(pos, neg)
+    
+    # Interleave so each feature's pos/neg columns sit side by side
+    ord <- as.vector(rbind(seq_len(ncol(x)), ncol(x) + seq_len(ncol(x))))
+    out <- out[, ord, drop = FALSE]
+    
+    if (drop_zero) {
+        keep <- colSums(out != 0, na.rm = TRUE) > 0
+        out <- out[, keep, drop = FALSE]
+    }
+    
+    rownames(out) <- rownames(x)
+    out
 }
 
 # Split the features of the CNV matrix into two non-negative features each
@@ -179,5 +208,93 @@ icp_df <- as.data.frame(icluster.z)
 colnames(icp_df) <- c("dim1", "dim2")
 rownames(icp_df) <- colnames(x1)
 icp_df$subtype <- factor(covariates[rownames(icp_df),]$cms_label)
+
+# create the scatter plot
+ggplot2::ggplot(icp_df, ggplot2::aes(x=dim1, y=dim2, color=subtype)) +
+    ggplot2::geom_point() +
+    ggplot2::ggtitle("Scatter plot of 2-component Icluster for multi-omics integration")
+
+
+pheatmap::pheatmap(t(icp_df[,1:2]),
+                   annotation_col = anno_col,
+                   show_colnames=FALSE,
+                   main="Heatmap of 2-component i cluster")
+
+
+#calculate the euclidean distance between 1 and 3
+#https://www.rdocumentation.org/packages/rsgeo/versions/0.1.7/topics/distance_euclidean_pairwise
+#install.packages(
+#    "rsgeo",
+#    repos = c("https://josiahparry.r-universe.dev", "https://cloud.r-project.org")
+#)
+#library(rsgeo)
+
+#distance_euclidean_matrix(icp_df$dim1, icp_df$dim2)
+
+#https://r-spatial.github.io/sf/reference/geos_measures.html
+#library(sf)#
+
+#st_as_sf(icp_df, arg = subtypes, sf_column_name = )
+
+#st_distance()
+
+
+#https://stackoverflow.com/questions/12102899/quickest-way-to-calculate-the-euclidean-distance-between-two-points-in-n-dimensi
+#library(ThreeWay)
+#nrm2(icp_df)
+
+library(Coreset)
+library(vegan)
+library(labdsv)
+
+#test <- pivot_wider(icp_df, names_from = subtype, values_from = subtype)
+#get the vegist
+#vegdist(icp_df, method="euclidean") 
+#meandist(icp_df)
+
+#https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/dist
+#https://www.rdocumentation.org/packages/Coreset/versions/1.0.0/topics/MeanDist
+#back to trying MeanDist
+nmf_dim <- nmf_df %>% select("dim1", "dim2")
+nmf_dist <- dist(nmf_dim, method = "euclidean", diag = FALSE, upper = FALSE)
+nmf_mean <- MaxMean(nmf_dist)
+MeanDist(nmf_dist, nmf_mean)
+
+#back to trying MeanDist
+mfa_dim <- mfa_df %>% select("Dim.1", "Dim.2")
+mfa_dist <- dist(mfa_dim, method = "euclidean", diag = FALSE, upper = FALSE)
+mfa_mean <- MaxMean(mfa_dist)
+MeanDist(mfa_dist, mfa_mean)
+
+
+#back to trying MeanDist
+icp_dim <- icp_df %>% select("dim1", "dim2")
+icp_dist <- dist(icp_dim, method = "euclidean", diag = FALSE, upper = FALSE)
+icp_mean <- MaxMean(icp_dist)
+MeanDist(icp_dist, icp_mean)
+
+
+#running sources
+#https://vegandevs.github.io/vegan/reference/vegdist.html
+#https://cran.r-project.org/web/packages/vegan/vegan.pdf
+#https://www.rdocumentation.org/packages/vegan/versions/2.7-6/topics/vegdist
+#https://www.datacamp.com/datalab/preview?_tag=rdocs&rdocsPath=packages%2FThreeWay%2Fversions%2F1.0%2Ftopics%2Fnrm2&utm_source=r-docs&utm_medium=docs&utm_term=nrm2&utm_content=run_example_in_datalab
+#https://www.rdocumentation.org/packages/ThreeWay/versions/1.1.4/topics/nrm2
+#https://stackoverflow.com/questions/12102899/quickest-way-to-calculate-the-euclidean-distance-between-two-points-in-n-dimensi
+#https://stackoverflow.com/questions/12102899/quickest-way-to-calculate-the-euclidean-distance-between-two-points-in-n-dimensi
+#https://www.rdocumentation.org/packages/sf/versions/1.1-3/topics/sf
+#https://github.com/r-spatial/sf/blob/main/R/geom-measures.R
+#https://r-spatial.github.io/sf/reference/geos_measures.html
+#https://stackoverflow.com/questions/71774492/how-to-calculate-euclidean-distance-from-sf-data-frame-points-in-r
+#https://www.rdocumentation.org/packages/rsgeo/versions/0.1.7
+#https://www.rdocumentation.org/packages/rsgeo/versions/0.1.7/topics/distance_euclidean_pairwise
+#https://rdrr.io/cran/vegan/src/R/meandist.R
+#https://www.rdocumentation.org/packages/Coreset/versions/1.0.0/topics/MeanDist
+
+
+
+
+
+
 
 
